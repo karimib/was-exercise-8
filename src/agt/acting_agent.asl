@@ -4,6 +4,16 @@
 // that describes a Thing of type https://ci.mines-stetienne.fr/kg/ontology#PhantomX
 robot_td("https://raw.githubusercontent.com/Interactions-HSG/example-tds/main/tds/leubot1.ttl").
 
+// Infer if can fulfill a role
+role_goal(R, G) :-
+   role_mission(R, _, M) & mission_goal(M, G).
+
+can_achieve(G) :-
+   .relevant_plans({+!G[scheme(_)]}, LP) & LP \== [].
+
+i_have_plan_for_role(R) :-
+   not (role_goal(R, G) & not can_achieve(G)).
+
 /* Initial goals */
 !start. // the agent has the goal to start
 
@@ -16,6 +26,23 @@ robot_td("https://raw.githubusercontent.com/Interactions-HSG/example-tds/main/td
 @start_plan
 +!start : true <-
 	.print("Hello world").
+
+
+@ask_fulfill_role_plan
++ask_fulfill_role(Role, GroupName, OrgName) : i_have_plan_for_role(Role) <-
+	joinWorkspace(OrgName);
+	lookupArtifact(OrgName, OrgArtId);
+	focus(OrgArtId);
+	lookupArtifact(GroupName, GroupArtId);
+	focus(GroupArtId);
+	adoptRole(Role);
+	.print("Agent has a plan for role: ", Role).
+
+
+@ask_fulfill_role_plan_fail
++ask_fulfill_role(Role, GroupName, OrgName) : not i_have_plan_for_role(Role) <-
+	.print("No plan for the role found: ", Role).
+
 
 /* 
  * Plan for reacting to the addition of the goal !manifest_temperature
